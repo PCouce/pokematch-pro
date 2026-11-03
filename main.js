@@ -8,9 +8,8 @@ let lockBoard = false;
 let firstCard = null;
 let secondCard = null;
 
-// Array base con 6 parejas de Pokémon (12 elementos en total)
-const pokemonList = [
-    "pikachu",
+// Array base con nombres de Pokémon para el juego de memoria
+const pokemonNames = [
     "pikachu",
     "charmander",
     "charmander",
@@ -58,7 +57,7 @@ startConsoleTimer();
 
 /**
  * Algoritmo de barajado Fisher-Yates
- * @param {Array} array - Array de elementos a desordenar
+ * @param {Array} array Array de elementos a desordenar
  * @returns {Array} El mismo array mezclado aleatoriamente
  */
 function shuffleCards(array) {
@@ -73,14 +72,14 @@ function shuffleCards(array) {
 }
 
 /**
- * Obtiene los datos de un Pokémon desde la PokéAPI
- * @param {string|number} pokemonId - Nombre o ID del Pokémon
- * @returns {Object|null} Objeto con el nombre y la URL del sprite o null si hay error
+ * Obtiene los datos detallados de un Pokémon desde la PokéAPI (incluyendo su sprite oficial)
+ * @param {string|number} pokemonIdNombre o ID del Pokémon
+ * @returns {Object|null} Objeto con el nombre y la URL de la imagen o null si hay error
  */
 async function fetchPokemonData(pokemonId) {
     try {
         const response = await fetch(
-            `https://pokeapi.co/api/v2/pokemon/${pokemonId}?limit=5`,
+            `https://pokeapi.co/api/v2/pokemon/${pokemonId.toLowerCase()}`,
         );
 
         if (!response.ok) {
@@ -89,12 +88,13 @@ async function fetchPokemonData(pokemonId) {
 
         const data = await response.json();
 
+        // Retornamos un objeto con el nombre limpio y el sprite frontal oficial
         return {
             name: data.name,
             image: data.sprites.front_default,
         };
     } catch (error) {
-        console.error("No se pudo recuperar el Pokémon:", error);
+        console.error(`No se pudo recuperar el Pokémon ${pokemonId}:`, error);
         return null;
     }
 }
@@ -109,3 +109,47 @@ async function testApiConnection() {
 }
 
 testApiConnection();
+
+// Prueba de carga asíncrona para obtener un listado de varios pokémones para el DOM
+async function testObtenerPokemons() {
+    console.log("[PokéMatch Pro] Obteniendo listado de pokemones...");
+
+    const resolvedPokemons = [];
+
+    // Recorremos los nombres base para obtener sus sprites reales de la API
+    for (const name of pokemonNames) {
+        const pokemonInfo = await fetchPokemonData(name);
+        if (pokemonInfo) {
+            resolvedPokemons.push(pokemonInfo);
+        }
+    }
+
+    console.log(
+        "Pokemones con propiedades obtenidos con éxito:",
+        resolvedPokemons,
+    );
+
+    const gameBoard = window.document.getElementById("game-board");
+    if (!gameBoard) {
+        console.warn("No se encontró el elemento #game-board en el DOM.");
+        return;
+    }
+
+    // Renderizamos la lista en el DOM usando .join('') para evitar comas
+    gameBoard.innerHTML = `
+        <h2>Listado de Pokemones</h2>
+        <ul>
+            ${resolvedPokemons
+                .map(
+                    (pokemon) => `
+                <li>
+                    <strong>Pokemon name:</strong> ${pokemon.name.charAt(0).toUpperCase() + pokemon.name.slice(1)}
+                    <img src="${pokemon.image}" alt="${pokemon.name}">
+                </li>`,
+                )
+                .join("")}
+        </ul>
+    `;
+}
+
+testObtenerPokemons();
